@@ -1,0 +1,7 @@
+config
+static/js
+.vscode/
+.editorconfig
+__debug_bin
+compiler/*.jar
+.DS_Store

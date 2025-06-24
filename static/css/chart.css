@@ -1,0 +1,86 @@
+body {
+  background-color:black;
+  margin:0;
+  height: 100vmin;
+}
+
+div.production_a,
+div.production_b,
+div.consumption_a,
+div.consumption_b,
+div.production,
+div.consumption {
+  color: silver;
+  font-family: Roboto;
+  font-weight: 700;
+  font-size: 5vmin;
+  width:25%;
+  display:inline-block;
+  text-align: center;
+}
+
+div.production_a:after,
+div.production_b:after,
+div.consumption_a:after,
+div.consumption_b:after,
+div.production:after,
+div.consumption:after {
+  content:" W";
+}
+
+div.production_a {
+  color: steelblue;
+}
+
+div.production_b {
+  color: green;
+}
+
+div.consumption_a {
+  color: orange;
+
+}
+div.consumption_b {
+  color:red;
+}
+
+
+div.production,
+div.consumption {
+  width: 50%;
+  font-size: 10vmin;
+}
+
+div.production {
+  color: #23c35a;
+}
+
+div.consumption {
+  color: #ff5200;
+}
+
+div.production:before {
+  content: "☀️"
+}
+div.consumption:before {
+  content: "⚡"
+}
+
+
+div.moving_bar_producing,
+div.moving_bar_consuming {
+  background-color:black;
+  position: fixed;
+  height:2vmin;
+  width:100%;
+  bottom:0;
+  background-size: 200% 100%;
+}
+
+div.moving_bar_producing {
+  background-image: repeating-linear-gradient(to right, black 0%, black 49%, #23c35a 50%, black 51%, black 100%);
+}
+
+div.moving_bar_consuming {
+  background-image: repeating-linear-gradient(to right, black 0%, black 49%, #ff5200 50%, black 51%, black 100%);
+}
