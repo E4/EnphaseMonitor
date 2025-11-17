@@ -10,6 +10,7 @@ import (
   "net/http/cookiejar"
   "strings"
   "power/configuration"
+  "time"
 )
 
 
@@ -41,41 +42,49 @@ type MeterData struct {
 var LatestMeterData MeterData;
 
 func StartMetricDataStream(token string, errs chan<- error) {
-  // Create a cookie jar to store cookies across requests
   jar, _ := cookiejar.New(nil)
   client := &http.Client{Jar: jar}
 
   authURL := "https://"+configuration.Config.EnvoyAddress+"/auth/check_jwt"
-  req, err := http.NewRequest("GET", authURL, nil)
-  if err != nil {
-    panic(err)
-  }
-  req.Header.Set("Authorization", "Bearer "+token)
+  streamURL := "https://"+configuration.Config.EnvoyAddress+"/stream/meter"
   client.CheckRedirect = func(req *http.Request, via []*http.Request) error { return nil } // prevent auto redirect
-  // Insecure TLS (skip cert verification)
   insecureClient := *client
   insecureClient.Transport = &http.Transport{TLSClientConfig: insecureTLS()}
-  _, err = insecureClient.Do(req)
-  if err != nil {
-    panic(fmt.Sprintf("Auth check failed: %v", err))
-  }
+  _ = errs
 
-  // Step 4: Stream data from the meter endpoint
-  streamURL := "https://"+configuration.Config.EnvoyAddress+"/stream/meter"
-  streamReq, err := http.NewRequest("GET", streamURL, nil)
-  if err != nil {
-    panic(err)
+  for {
+    if err := authorize(&insecureClient, authURL, token); err != nil {
+      fmt.Printf("Auth check failed: %v. Retrying in 10s.\n", err)
+      time.Sleep(10 * time.Second)
+      continue
+    }
+
+    streamReq, err := http.NewRequest("GET", streamURL, nil)
+    if err != nil {
+      fmt.Printf("Failed to create stream request: %v. Retrying in 5s.\n", err)
+      time.Sleep(5 * time.Second)
+      continue
+    }
+
+    streamResp, err := insecureClient.Do(streamReq)
+    if err != nil {
+      fmt.Printf("Stream request failed: %v. Retrying in 10s.\n", err)
+      time.Sleep(10 * time.Second)
+      continue
+    }
+
+    if err := streamAndParse(streamResp.Body); err != nil {
+      fmt.Printf("Stream disconnected: %v. Reconnecting...\n", err)
+    } else {
+      fmt.Printf("Stream ended without error. Reconnecting...\n")
+    }
+
+    time.Sleep(5 * time.Second)
   }
-  streamResp, err := insecureClient.Do(streamReq)
-  if err != nil {
-    panic(fmt.Sprintf("Stream request failed: %v", err))
-  }
-  defer streamResp.Body.Close()
-  streamAndParse(streamResp.Body, errs)
 }
 
 
-func streamAndParse(streamRespBody io.ReadCloser, errs chan<- error) {
+func streamAndParse(streamRespBody io.ReadCloser) error {
   defer streamRespBody.Close()
   scanner := bufio.NewScanner(streamRespBody)
   for scanner.Scan() {
@@ -92,8 +101,9 @@ func streamAndParse(streamRespBody io.ReadCloser, errs chan<- error) {
     uploadData(LatestMeterData)
   }
   if err := scanner.Err(); err != nil {
-    errs <- fmt.Errorf("scanner finished %w", err)
+    return fmt.Errorf("scanner finished %w", err)
   }
+  return fmt.Errorf("stream closed")
 }
 
 
@@ -132,7 +142,17 @@ func extractTextareaContent(html string) string {
 }
 
 
+func authorize(client *http.Client, url string, token string) error {
+  req, err := http.NewRequest("GET", url, nil)
+  if err != nil {
+    return err
+  }
+  req.Header.Set("Authorization", "Bearer "+token)
+  _, err = client.Do(req)
+  return err
+}
+
+
 func insecureTLS() *tls.Config {
   return &tls.Config{InsecureSkipVerify: true}
 }
-
