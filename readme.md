@@ -1,3 +1,6 @@
+
+# Settings
+
 Create a file `config/system.ini` with the desired configuration. It needs to have the following values:
 
 ```
@@ -26,5 +29,19 @@ influx_bucket=
 influx_url=
 ```
 
+# Starting
 
-Install dependencies using Go, and start with `go run main.go` and navigate to http://localhost:[httpport]/ with a local browser.
+Install dependencies using Go `go get`, and start with `go run main.go` and navigate to http://localhost:[httpport]/ with a local browser.
+
+
+# URLs
+
+`/meter` Will show you the latest data that was received. It's a JSON formed data packet that provides current values for production, net-consumption and total-consumption. The data is very detailed, and per phase.
+
+`/stream`  This is a websocket endpoint that streams out the data as it comes in.
+
+`/index.html`  This program also has an HTTP server that will serve contents from the /static folder. There's a program included that attaches to the stream and shows the data in a neat chart.
+
+# Screenshot
+
+![Screenshot](/docs/screenshot.png?raw=true)
